@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: email-responder
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -b 0.0.0.0:$PORT app.server:app
+    disk:
+      name: token-disk
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_ASSISTANT_ID
+        sync: false
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REDIRECT_URL
+        sync: false
+      - key: POLL_INTERVAL_SECONDS
+        value: "180"
+      - key: FROM_EMAIL
+        sync: false
+      - key: RUN_POLLING
+        value: "true"
+      - key: TOKEN_STORE_PATH
+        value: "/var/data/token_store.json"

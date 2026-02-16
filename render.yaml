@@ -4,6 +4,7 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -b 0.0.0.0:$PORT app.server:app
+    healthCheckPath: /health
     disk:
       name: token-disk
       mountPath: /var/data

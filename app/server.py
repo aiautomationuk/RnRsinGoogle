@@ -32,6 +32,11 @@ def health_check():
     return jsonify({"status": "ok"})
 
 
+@app.get("/")
+def root():
+    return jsonify({"status": "ok"})
+
+
 @app.get("/oauth/start")
 def oauth_start():
     redirect_uri = os.environ.get("GMAIL_REDIRECT_URL", "").strip()

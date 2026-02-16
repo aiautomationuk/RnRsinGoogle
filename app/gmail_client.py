@@ -149,7 +149,52 @@ def parse_message_for_reply(message):
         "reply_to": parseaddr(reply_to)[1] or from_email,
         "subject": subject,
         "body": _extract_body(payload),
+        "headers": headers,
     }
+
+
+def is_likely_bulk(headers, subject: str, body: str, from_email: str) -> bool:
+    subject_lower = (subject or "").lower()
+    body_lower = (body or "").lower()
+    from_lower = (from_email or "").lower()
+
+    header_map = {header.get("name", "").lower(): header.get("value", "") for header in headers}
+    precedence = header_map.get("precedence", "").lower()
+    auto_submitted = header_map.get("auto-submitted", "").lower()
+    list_unsubscribe = header_map.get("list-unsubscribe", "")
+    list_id = header_map.get("list-id", "")
+    auto_response = header_map.get("x-auto-response-suppress", "")
+
+    if precedence in {"bulk", "junk", "list"}:
+        return True
+    if auto_submitted and auto_submitted != "no":
+        return True
+    if list_unsubscribe or list_id or auto_response:
+        return True
+
+    if any(token in from_lower for token in ["no-reply", "noreply", "mailer-daemon", "postmaster"]):
+        return True
+
+    subject_tokens = [
+        "unsubscribe",
+        "sale",
+        "promotion",
+        "newsletter",
+        "deal",
+        "offer",
+        "discount",
+        "webinar",
+        "digest",
+        "trial",
+    ]
+    if any(token in subject_lower for token in subject_tokens):
+        return True
+
+    body_tokens = ["unsubscribe", "view in browser", "manage preferences"]
+    if any(token in body_lower for token in body_tokens):
+        return True
+
+    return False
 
 
 def send_reply_message(

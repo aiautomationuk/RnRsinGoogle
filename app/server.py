@@ -14,7 +14,7 @@ from .gmail_client import (
     mark_message_as_read,
     send_reply_message,
 )
-from .gmail_client import fetch_message, parse_message_for_reply
+from .gmail_client import fetch_message, is_likely_bulk, parse_message_for_reply
 from .openai_client import generate_reply_text
 
 
@@ -89,6 +89,11 @@ def poll_once():
             mark_message_as_read(service, message_id)
             continue
 
+        if is_likely_bulk(parsed["headers"], parsed["subject"], parsed["body"], from_email):
+            logger.info("Skipping likely bulk email from %s", from_email)
+            mark_message_as_read(service, message_id)
+            continue
+
         reply_text = generate_reply_text(
             sender_name=parsed["from_name"],
             sender_email=parsed["from_email"],
@@ -132,4 +137,8 @@ def start_background_polling():
 
 
 start_background_polling()
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", "8000"))
+    app.run(host="0.0.0.0", port=port)
 

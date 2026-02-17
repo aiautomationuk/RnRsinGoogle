@@ -1,4 +1,5 @@
 import base64
+import os
 from email.mime.text import MIMEText
 from email.utils import parseaddr
 
@@ -9,6 +10,7 @@ from googleapiclient.discovery import build
 from .oauth_client import build_oauth_flow
 
 GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
 
 
 def build_gmail_auth_flow(redirect_uri: str):

@@ -168,6 +168,17 @@ def is_likely_bulk(headers, subject: str, body: str, from_email: str) -> bool:
     return False
 
 
+def _normalize_reply_subject(subject: str) -> str:
+    subject = subject.strip()
+    if not subject:
+        return "Re: (no subject)"
+    lowered = subject.lower()
+    while lowered.startswith("re:"):
+        subject = subject[3:].lstrip()
+        lowered = subject.lower()
+    return f"Re: {subject}"
+
+
 def send_reply_message(
     service,
     thread_id: str,
@@ -182,7 +193,7 @@ def send_reply_message(
     mime["To"] = to_addr
     if cc_addr:
         mime["Cc"] = cc_addr
-    mime["Subject"] = f"Re: {subject}"
+    mime["Subject"] = _normalize_reply_subject(subject)
     if in_reply_to:
         mime["In-Reply-To"] = in_reply_to
     if references:

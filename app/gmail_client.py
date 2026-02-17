@@ -176,9 +176,12 @@ def send_reply_message(
     body: str,
     in_reply_to: str,
     references: str,
+    cc_addr: str | None = None,
 ):
     mime = MIMEText(body)
     mime["To"] = to_addr
+    if cc_addr:
+        mime["Cc"] = cc_addr
     mime["Subject"] = f"Re: {subject}"
     if in_reply_to:
         mime["In-Reply-To"] = in_reply_to

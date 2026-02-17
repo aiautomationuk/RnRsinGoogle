@@ -35,6 +35,8 @@ Set environment variables:
 - `GMAIL_CLIENT_SECRET` (optional; falls back to Google OAuth client)
 - `GMAIL_REDIRECT_URL` (the `/gmail/connect/callback` URL)
 - `POLL_INTERVAL_SECONDS` (default 180)
+- `EMERGENCY_CC_EMAIL` (optional; CC address for important/emergency emails)
+- `EMERGENCY_CC_LEVEL` (`important` or `emergency`, default `important`)
 
 ### 4) User Login + Connect Gmail
 1. Login with Google:
@@ -50,4 +52,5 @@ Set environment variables:
 - The poller ignores emails that are already marked read.
 - Replies are sent in-thread and the email is marked as read afterward.
 - To stop polling, set `RUN_POLLING=false`.
+- If `EMERGENCY_CC_EMAIL` is set, the assistant will classify urgency and CC the address.
 

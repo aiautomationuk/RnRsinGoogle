@@ -32,5 +32,9 @@ services:
         sync: false
       - key: POLL_INTERVAL_SECONDS
         value: "180"
+      - key: EMERGENCY_CC_EMAIL
+        sync: false
+      - key: EMERGENCY_CC_LEVEL
+        value: "important"
       - key: RUN_POLLING
         value: "true"

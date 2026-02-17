@@ -22,7 +22,7 @@ from .gmail_client import (
 )
 from .models import GmailToken, User
 from .oauth_client import build_oauth_flow
-from .openai_client import generate_reply_text
+from .openai_client import classify_importance, generate_reply_text
 
 
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +34,8 @@ LOGIN_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
+EMERGENCY_CC_EMAIL = os.environ.get("EMERGENCY_CC_EMAIL", "").strip()
+EMERGENCY_CC_LEVEL = os.environ.get("EMERGENCY_CC_LEVEL", "important").strip().lower()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
@@ -227,6 +229,21 @@ def poll_once():
                     mark_message_as_read(service, message_id)
                     continue
 
+                cc_addr = None
+                if EMERGENCY_CC_EMAIL:
+                    importance = classify_importance(
+                        sender_name=parsed["from_name"],
+                        sender_email=parsed["from_email"],
+                        subject=parsed["subject"],
+                        original_body=parsed["body"],
+                    )
+                    if EMERGENCY_CC_LEVEL == "emergency":
+                        if importance == "EMERGENCY":
+                            cc_addr = EMERGENCY_CC_EMAIL
+                    else:
+                        if importance in {"IMPORTANT", "EMERGENCY"}:
+                            cc_addr = EMERGENCY_CC_EMAIL
+
                 reply_text = generate_reply_text(
                     sender_name=parsed["from_name"],
                     sender_email=parsed["from_email"],
@@ -245,6 +262,7 @@ def poll_once():
                     body=reply_text,
                     in_reply_to=parsed["message_id"],
                     references=parsed["references"],
+                    cc_addr=cc_addr,
                 )
                 mark_message_as_read(service, message_id)
                 logger.info("Replied to message %s", message_id)

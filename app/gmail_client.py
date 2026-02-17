@@ -1,42 +1,21 @@
 import base64
-import json
-import os
 from email.mime.text import MIMEText
 from email.utils import parseaddr
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
-TOKEN_STORE_PATH = os.environ.get("TOKEN_STORE_PATH", "/var/data/token_store.json")
-FALLBACK_TOKEN_STORE_PATH = "/tmp/token_store.json"
+from .oauth_client import build_oauth_flow
+
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 
 
-def _client_config():
-    client_id = os.environ.get("GMAIL_CLIENT_ID", "").strip()
-    client_secret = os.environ.get("GMAIL_CLIENT_SECRET", "").strip()
-    if not client_id or not client_secret:
-        raise ValueError("GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET must be set.")
-
-    return {
-        "web": {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-        }
-    }
+def build_gmail_auth_flow(redirect_uri: str):
+    return build_oauth_flow(GMAIL_SCOPES, redirect_uri)
 
 
-def build_auth_flow(redirect_uri: str) -> Flow:
-    flow = Flow.from_client_config(_client_config(), scopes=SCOPES)
-    flow.redirect_uri = redirect_uri
-    return flow
-
-
-def _credentials_to_dict(credentials: Credentials) -> dict:
+def credentials_to_dict(credentials: Credentials) -> dict:
     return {
         "token": credentials.token,
         "refresh_token": credentials.refresh_token,
@@ -47,50 +26,25 @@ def _credentials_to_dict(credentials: Credentials) -> dict:
     }
 
 
-def _read_credentials(path: str):
-    if not os.path.exists(path):
-        return None
-    with open(path, "r", encoding="utf-8") as handle:
-        data = json.load(handle)
+def credentials_from_dict(data: dict):
     return Credentials(**data)
 
 
-def load_stored_credentials():
-    credentials = _read_credentials(TOKEN_STORE_PATH)
-    if credentials:
-        return credentials
-    return _read_credentials(FALLBACK_TOKEN_STORE_PATH)
-
-
-def _write_credentials(credentials: Credentials, path: str):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(_credentials_to_dict(credentials), handle)
-
-
-def save_credentials(credentials: Credentials):
-    try:
-        _write_credentials(credentials, TOKEN_STORE_PATH)
-    except PermissionError:
-        _write_credentials(credentials, FALLBACK_TOKEN_STORE_PATH)
-
-
 def exchange_code_for_tokens(code: str, redirect_uri: str):
-    flow = build_auth_flow(redirect_uri)
+    flow = build_gmail_auth_flow(redirect_uri)
     flow.fetch_token(code=code)
-    save_credentials(flow.credentials)
+    return flow.credentials
 
 
-def get_gmail_service():
-    credentials = load_stored_credentials()
-    if not credentials:
-        return None
-
+def get_gmail_service(credentials_dict: dict):
+    if not credentials_dict:
+        return None, None
+    credentials = credentials_from_dict(credentials_dict)
     if credentials.expired and credentials.refresh_token:
         credentials.refresh(Request())
-        save_credentials(credentials)
+        return build("gmail", "v1", credentials=credentials), credentials_to_dict(credentials)
 
-    return build("gmail", "v1", credentials=credentials)
+    return build("gmail", "v1", credentials=credentials), None
 
 
 def list_unread_message_ids(service, max_results: int = 10):

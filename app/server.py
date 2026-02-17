@@ -20,7 +20,9 @@ from .gmail_client import (
     parse_message_for_reply,
     send_reply_message,
 )
-from .models import GmailToken, User
+from sqlalchemy.exc import IntegrityError
+
+from .models import GmailToken, ProcessedMessage, User
 from .oauth_client import build_oauth_flow
 from .openai_client import classify_importance, generate_reply_text
 
@@ -211,6 +213,15 @@ def poll_once():
                 continue
 
             for message_id in message_ids:
+                existing = (
+                    session_db.query(ProcessedMessage)
+                    .filter_by(user_id=token.user.id, message_id=message_id)
+                    .one_or_none()
+                )
+                if existing:
+                    mark_message_as_read(service, message_id)
+                    continue
+
                 message = fetch_message(service, message_id)
                 if not message:
                     continue
@@ -265,6 +276,13 @@ def poll_once():
                     cc_addr=cc_addr,
                 )
                 mark_message_as_read(service, message_id)
+                try:
+                    session_db.add(
+                        ProcessedMessage(user_id=token.user.id, message_id=message_id)
+                    )
+                    session_db.commit()
+                except IntegrityError:
+                    session_db.rollback()
                 logger.info("Replied to message %s", message_id)
 
 

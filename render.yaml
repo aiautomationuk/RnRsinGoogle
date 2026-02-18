@@ -36,5 +36,25 @@ services:
         sync: false
       - key: EMERGENCY_CC_LEVEL
         value: "important"
+      - key: IMAP_HOST
+        sync: false
+      - key: IMAP_PORT
+        value: "993"
+      - key: IMAP_USERNAME
+        sync: false
+      - key: IMAP_PASSWORD
+        sync: false
+      - key: IMAP_FOLDER
+        value: "INBOX"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
       - key: RUN_POLLING
         value: "true"

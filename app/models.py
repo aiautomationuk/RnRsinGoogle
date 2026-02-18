@@ -36,3 +36,13 @@ class ProcessedMessage(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     message_id = Column(String(128), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ProcessedImapMessage(Base):
+    __tablename__ = "processed_imap_messages"
+    __table_args__ = (UniqueConstraint("imap_account", "imap_uid", name="uq_imap_uid"),)
+
+    id = Column(Integer, primary_key=True)
+    imap_account = Column(String(320), nullable=False)
+    imap_uid = Column(String(128), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

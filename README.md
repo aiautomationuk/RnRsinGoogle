@@ -37,6 +37,8 @@ Set environment variables:
 - `POLL_INTERVAL_SECONDS` (default 180)
 - `EMERGENCY_CC_EMAIL` (optional; CC address for important/emergency emails)
 - `EMERGENCY_CC_LEVEL` (`important` or `emergency`, default `important`)
+- `IMAP_HOST`, `IMAP_PORT`, `IMAP_USERNAME`, `IMAP_PASSWORD`, `IMAP_FOLDER` (optional; IMAP inbox polling)
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` (required if IMAP is enabled)
 
 ### 4) User Login + Connect Gmail
 1. Login with Google:
@@ -53,4 +55,5 @@ Set environment variables:
 - Replies are sent in-thread and the email is marked as read afterward.
 - To stop polling, set `RUN_POLLING=false`.
 - If `EMERGENCY_CC_EMAIL` is set, the assistant will classify urgency and CC the address.
+- If IMAP settings are present, the app will also poll that mailbox and send replies via SMTP.
 

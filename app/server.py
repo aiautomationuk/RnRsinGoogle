@@ -213,11 +213,14 @@ def imap_connect():
         if not user:
             return jsonify({"error": "Login required"}), 401
 
-        existing = session_db.query(ImapCredential).filter_by(user_id=user.id).one_or_none()
+        existing = (
+            session_db.query(ImapCredential)
+            .filter_by(user_id=user.id, imap_username=data["imap_username"])
+            .one_or_none()
+        )
         if existing:
             existing.imap_host = data["imap_host"]
             existing.imap_port = int(data.get("imap_port", 993))
-            existing.imap_username = data["imap_username"]
             existing.imap_password = data["imap_password"]
             existing.imap_folder = data.get("imap_folder", "INBOX")
             existing.smtp_host = data["smtp_host"]
@@ -225,6 +228,7 @@ def imap_connect():
             existing.smtp_username = data["smtp_username"]
             existing.smtp_password = data["smtp_password"]
             existing.smtp_from = data["smtp_from"]
+            existing.openai_assistant_id = data.get("openai_assistant_id") or None
         else:
             session_db.add(ImapCredential(
                 user_id=user.id,
@@ -238,10 +242,43 @@ def imap_connect():
                 smtp_username=data["smtp_username"],
                 smtp_password=data["smtp_password"],
                 smtp_from=data["smtp_from"],
+                openai_assistant_id=data.get("openai_assistant_id") or None,
             ))
         session_db.commit()
 
     return jsonify({"status": "imap_connected"})
+
+
+@app.get("/imap/accounts")
+def imap_accounts():
+    with get_session() as session_db:
+        user = _current_user(session_db)
+        if not user:
+            return jsonify({"error": "Login required"}), 401
+        creds = session_db.query(ImapCredential).filter_by(user_id=user.id).all()
+        return jsonify([
+            {
+                "id": c.id,
+                "imap_username": c.imap_username,
+                "smtp_from": c.smtp_from,
+                "openai_assistant_id": c.openai_assistant_id,
+            }
+            for c in creds
+        ])
+
+
+@app.delete("/imap/account/<int:account_id>")
+def imap_delete_account(account_id):
+    with get_session() as session_db:
+        user = _current_user(session_db)
+        if not user:
+            return jsonify({"error": "Login required"}), 401
+        cred = session_db.query(ImapCredential).filter_by(id=account_id, user_id=user.id).one_or_none()
+        if not cred:
+            return jsonify({"error": "Not found"}), 404
+        session_db.delete(cred)
+        session_db.commit()
+    return jsonify({"status": "deleted"})
 
 
 @app.get("/imap/status")
@@ -250,10 +287,10 @@ def imap_status():
         user = _current_user(session_db)
         if not user:
             return jsonify({"error": "Login required"}), 401
-        cred = session_db.query(ImapCredential).filter_by(user_id=user.id).one_or_none()
-        if not cred:
+        creds = session_db.query(ImapCredential).filter_by(user_id=user.id).all()
+        if not creds:
             return jsonify({"connected": False})
-        return jsonify({"connected": True, "imap_username": cred.imap_username, "smtp_from": cred.smtp_from})
+        return jsonify({"connected": True, "count": len(creds)})
 
 
 def poll_once():
@@ -401,6 +438,7 @@ def poll_once():
                         mark_seen(imap_client, uid)
                         continue
 
+                    acct_assistant_id = cred.openai_assistant_id or None
                     cc_addr = None
                     if EMERGENCY_CC_EMAIL:
                         importance = classify_importance(
@@ -408,6 +446,7 @@ def poll_once():
                             sender_email=parsed["from_email"],
                             subject=parsed["subject"],
                             original_body=parsed["body"],
+                            assistant_id=acct_assistant_id,
                         )
                         if EMERGENCY_CC_LEVEL == "emergency":
                             if importance == "EMERGENCY":
@@ -421,6 +460,7 @@ def poll_once():
                         sender_email=parsed["from_email"],
                         subject=parsed["subject"],
                         original_body=parsed["body"],
+                        assistant_id=acct_assistant_id,
                     )
                     if not reply_text:
                         logger.warning("Assistant returned empty reply for IMAP %s", uid_str)

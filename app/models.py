@@ -15,7 +15,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     gmail_token = relationship("GmailToken", back_populates="user", uselist=False)
-    imap_credential = relationship("ImapCredential", back_populates="user", uselist=False)
+    imap_credentials = relationship("ImapCredential", back_populates="user")
 
 
 class GmailToken(Base):
@@ -43,7 +43,7 @@ class ImapCredential(Base):
     __tablename__ = "imap_credentials"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     imap_host = Column(String(255), nullable=False)
     imap_port = Column(Integer, default=993, nullable=False)
     imap_username = Column(String(320), nullable=False)
@@ -54,9 +54,10 @@ class ImapCredential(Base):
     smtp_username = Column(String(320), nullable=False)
     smtp_password = Column(String(512), nullable=False)
     smtp_from = Column(String(320), nullable=False)
+    openai_assistant_id = Column(String(128), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-    user = relationship("User", back_populates="imap_credential")
+    user = relationship("User", back_populates="imap_credentials")
 
 
 class ProcessedImapMessage(Base):

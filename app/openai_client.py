@@ -18,7 +18,7 @@ def _assistant_id():
     return assistant_id
 
 
-def classify_importance(sender_name: str, sender_email: str, subject: str, original_body: str) -> str:
+def classify_importance(sender_name: str, sender_email: str, subject: str, original_body: str, assistant_id: str | None = None) -> str:
     prompt = (
         "Classify the email urgency as one of: NORMAL, IMPORTANT, EMERGENCY. "
         "IMPORTANT means time-sensitive or high-stakes and should alert a human. "
@@ -32,7 +32,7 @@ def classify_importance(sender_name: str, sender_email: str, subject: str, origi
     client = _client()
     thread = client.beta.threads.create()
     client.beta.threads.messages.create(thread_id=thread.id, role="user", content=prompt)
-    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=_assistant_id())
+    run = client.beta.threads.runs.create(thread_id=thread.id, assistant_id=assistant_id or _assistant_id())
 
     status = run.status
     while status not in {"completed", "failed", "cancelled", "expired"}:
@@ -56,8 +56,8 @@ def classify_importance(sender_name: str, sender_email: str, subject: str, origi
     return "NORMAL"
 
 
-def generate_reply_text(sender_name: str, sender_email: str, subject: str, original_body: str):
-    assistant_id = _assistant_id()
+def generate_reply_text(sender_name: str, sender_email: str, subject: str, original_body: str, assistant_id: str | None = None):
+    assistant_id = assistant_id or _assistant_id()
 
     prompt = (
         "You are an email assistant. Draft a concise, polite reply. "

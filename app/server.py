@@ -409,6 +409,22 @@ def poll_once():
                 if not uids:
                     continue
 
+                is_first_run = not session_db.query(ProcessedImapMessage).filter_by(
+                    imap_account=cred.imap_username
+                ).first()
+
+                if is_first_run:
+                    logger.info("First run for %s: seeding %d existing message(s), replies start from next poll.", cred.imap_username, len(uids))
+                    for uid in uids:
+                        uid_str = uid.decode("utf-8", errors="ignore")
+                        mark_seen(imap_client, uid)
+                        try:
+                            session_db.add(ProcessedImapMessage(imap_account=cred.imap_username, imap_uid=uid_str))
+                            session_db.commit()
+                        except IntegrityError:
+                            session_db.rollback()
+                    continue
+
                 for uid in uids:
                     uid_str = uid.decode("utf-8", errors="ignore")
                     existing = (

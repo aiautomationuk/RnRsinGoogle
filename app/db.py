@@ -2,6 +2,9 @@ import logging
 import os
 from contextlib import contextmanager
 
+import pymysql
+pymysql.install_as_MySQLdb()
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

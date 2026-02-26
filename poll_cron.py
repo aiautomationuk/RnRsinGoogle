@@ -15,7 +15,7 @@ import sys
 # Update this path to match the exact virtualenv path shown in cPanel.
 VENV_PYTHON = os.path.join(
     os.environ.get("HOME", ""),
-    "virtualenv", "readandreply", "3.11", "bin", "python3"
+    "virtualenv", "ReadandReply", "3.11", "bin", "python3"
 )
 if sys.executable != VENV_PYTHON:
     os.execl(VENV_PYTHON, VENV_PYTHON, *sys.argv)

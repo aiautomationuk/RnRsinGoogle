@@ -6,7 +6,7 @@ import os
 # shown in the UI and update this line to match (e.g. python3.11 vs python3).
 INTERP = os.path.join(
     os.environ.get("HOME", ""),
-    "virtualenv", "readandreply", "3.11", "bin", "python3"
+    "virtualenv", "ReadandReply", "3.11", "bin", "python3"
 )
 if sys.executable != INTERP:
     os.execl(INTERP, INTERP, *sys.argv)

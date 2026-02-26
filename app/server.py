@@ -30,7 +30,46 @@ EMERGENCY_CC_LEVEL = os.environ.get("EMERGENCY_CC_LEVEL", "important").strip().l
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
+
+def _seed_imap_from_env():
+    """If no IMAP accounts are in the database, create one from environment variables."""
+    imap_host = os.environ.get("IMAP_HOST", "").strip()
+    imap_username = os.environ.get("IMAP_USERNAME", "").strip()
+    imap_password = os.environ.get("IMAP_PASSWORD", "").strip()
+    smtp_host = os.environ.get("SMTP_HOST", "").strip()
+    smtp_username = os.environ.get("SMTP_USERNAME", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "").strip()
+    smtp_from = os.environ.get("SMTP_FROM", "").strip()
+
+    if not all([imap_host, imap_username, imap_password, smtp_host, smtp_username, smtp_password, smtp_from]):
+        return  # env vars not set — skip
+
+    try:
+        with get_session() as session_db:
+            exists = session_db.query(ImapCredential).filter_by(imap_username=imap_username).one_or_none()
+            if exists:
+                return  # already seeded
+            session_db.add(ImapCredential(
+                imap_host=imap_host,
+                imap_port=int(os.environ.get("IMAP_PORT", "993")),
+                imap_username=imap_username,
+                imap_password=imap_password,
+                imap_folder=os.environ.get("IMAP_FOLDER", "INBOX"),
+                smtp_host=smtp_host,
+                smtp_port=int(os.environ.get("SMTP_PORT", "465")),
+                smtp_username=smtp_username,
+                smtp_password=smtp_password,
+                smtp_from=smtp_from,
+                openai_assistant_id=os.environ.get("OPENAI_ASSISTANT_ID_OVERRIDE") or None,
+            ))
+            session_db.commit()
+            logger.info("Seeded IMAP account from environment variables: %s", imap_username)
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.exception("Failed to seed IMAP account from env: %s", exc)
+
+
 init_db()
+_seed_imap_from_env()
 
 
 def _check_admin_secret():
